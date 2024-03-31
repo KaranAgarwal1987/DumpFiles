@@ -276,3 +276,34 @@ The NAB QE Tech Radar is a strategic tool that illustrates the technologies—sp
 
 Introduction
 The Tech Radar is a concept that has been widely adopted in the technology industry to monitor the adoption of new technologies and to guide the strategic direction of an organization's tech portfolio. For NAB QE, the Tech Radar serves as a visual representation and decision-making tool to evaluate and manage the technologies that support and enhance Quality Engineering practices.
+
+Tech Radar Overview
+The radar presents a 360-degree view of NAB QE's technology landscape, categorized into four quadrants that reflect the core areas of technological application within QE. Additionally, technologies are evaluated through four stages of adoption—Adopt, Trial, Assess, and Retire—to provide a clear path for their lifecycle management.
+
+Quadrants Description
+Frameworks
+In this quadrant, we catalog the software frameworks that underpin our QE practices. These frameworks provide the foundation upon which our automated testing strategies are built.
+
+Automation Capabilities
+Here we focus on the competencies that enable the QE team to implement and execute automated tests. This includes, but is not limited to, script execution, test data management, and CI/CD integration.
+
+Tools & Platforms
+This category lists the tools and platforms that support the testing life cycle. They range from development environments to testing platforms and performance monitoring tools.
+
+Languages
+Programming languages and scripting languages are critical to QE tasks. This quadrant addresses the languages our team uses to write test scripts and develop automation tools.
+
+Rings Description
+Adopt
+'Technologies to Adopt' are those that have proven their value and are recommended for use across QE projects.
+
+Trial
+'Technologies to Trial' are being tested in controlled environments to determine their potential for wider adoption.
+
+Assess
+'Technologies to Assess' are on our radar for potential future use and are currently under review.
+
+Retire
+'Technologies to Retire' are those that are being phased out in favor of more effective solutions.
+
+
