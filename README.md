@@ -1,39 +1,32 @@
 import { createObjectCsvWriter as createCsvWriter } from 'csv-writer';
-import * as faker from 'faker';
+import { faker } from '@faker-js/faker';
 
-interface FieldSchema {
-    name: string;
-    type: 'string' | 'number' | 'datetime' | 'enum';
+type Platform = 'Linux' | 'Windows' | 'Mac';
+
+interface Record {
+    Suite_name: string;
+    Suite_path: string;
+    run_id: string;
+    platform: Platform;
+    TestCaseID: string;
+    Execution_status: 'passed' | 'failed';
+    test_case_start_time: string;
+    testcase_end_time: string;
 }
 
 const projectNames = ['ProjectX', 'ProjectY', 'ProjectZ'];
 const suitePaths = ['CategoryA', 'CategoryB', 'CategoryC'];
-const platforms = ['Linux', 'Windows', 'Mac'];
+const platforms: Platform[] = ['Linux', 'Windows', 'Mac'];
 
-const schema: FieldSchema[] = [
-    { name: 'Suite_name', type: 'string' },
-    { name: 'Suite_path', type: 'string' },
-    { name: 'run_id', type: 'datetime' },
-    { name: 'platform', type: 'enum' },
-    { name: 'TestCaseID', type: 'string' },
-    { name: 'Execution_status', type: 'string' },
-    { name: 'test_case_start_time', type: 'datetime' },
-    { name: 'testcase_end_time', type: 'datetime' },
-];
-
-function getRandomProjectName() {
-    return faker.random.arrayElement(projectNames);
-}
-
-function generateRandomData(numRecords: number): any[] {
-    const data = [];
+function generateRandomData(numRecords: number): Record[] {
+    const data: Record[] = [];
     for (let i = 0; i < numRecords; i++) {
-        const projectName = getRandomProjectName();
+        const projectName = faker.helpers.arrayElement(projectNames);
         const suiteNum = faker.datatype.number({ min: 1, max: 10 });
         const suiteName = `${projectName}_SUITE_NAME_${suiteNum}`;
-        const suitePath = faker.random.arrayElement(suitePaths);
+        const suitePath = faker.helpers.arrayElement(suitePaths);
         const runId = faker.date.recent(30);
-        const platform = faker.random.arrayElement(platforms);
+        const platform = faker.helpers.arrayElement(platforms);
         const testCaseID = `${projectName}_${suiteName}_TestCase_${faker.datatype.number(100)}`;
         const executionStatus = faker.datatype.number(10) < 1 ? 'failed' : 'passed'; // Mostly 'passed'
         const testCaseStartTime = new Date(runId.getTime() + faker.datatype.number({ min: 1000, max: 10000 }));
@@ -53,10 +46,19 @@ function generateRandomData(numRecords: number): any[] {
     return data;
 }
 
-function writeToCSV(records: any[], fileName: string) {
+function writeToCSV(records: Record[], fileName: string) {
     const csvWriter = createCsvWriter({
         path: fileName,
-        header: schema.map(field => ({ id: field.name, title: field.name })),
+        header: [
+            { id: 'Suite_name', title: 'Suite_name' },
+            { id: 'Suite_path', title: 'Suite_path' },
+            { id: 'run_id', title: 'run_id' },
+            { id: 'platform', title: 'platform' },
+            { id: 'TestCaseID', title: 'TestCaseID' },
+            { id: 'Execution_status', title: 'Execution_status' },
+            { id: 'test_case_start_time', title: 'test_case_start_time' },
+            { id: 'testcase_end_time', title: 'testcase_end_time' }
+        ],
     });
 
     csvWriter.writeRecords(records)
@@ -67,4 +69,3 @@ function writeToCSV(records: any[], fileName: string) {
 // Generate 100 random records
 const records = generateRandomData(100);
 writeToCSV(records, 'output.csv');
-
