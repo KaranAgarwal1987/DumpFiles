@@ -1,71 +1,59 @@
-import { createObjectCsvWriter as createCsvWriter } from 'csv-writer';
-import { faker } from '@faker-js/faker';
+from faker import Faker
+import csv
+from datetime import datetime, timedelta
+import random
 
-type Platform = 'Linux' | 'Windows' | 'Mac';
+# Initialize Faker
+fake = Faker()
 
-interface Record {
-    Suite_name: string;
-    Suite_path: string;
-    run_id: string;
-    platform: Platform;
-    TestCaseID: string;
-    Execution_status: 'passed' | 'failed';
-    test_case_start_time: string;
-    testcase_end_time: string;
-}
+# Configuration
+project_names = ['ProjectX', 'ProjectY', 'ProjectZ']
+suite_paths = ['CategoryA', 'CategoryB', 'CategoryC']
+platforms = ['Linux', 'Windows', 'Mac']
+output_file = 'output.csv'
 
-const projectNames = ['ProjectX', 'ProjectY', 'ProjectZ'];
-const suitePaths = ['CategoryA', 'CategoryB', 'CategoryC'];
-const platforms: Platform[] = ['Linux', 'Windows', 'Mac'];
+def generate_test_cases(project_name, suite_name):
+    # Generate a larger pool of possible test cases
+    num_cases = random.randint(15, 25)  # pool size larger than any single run
+    return [f"{project_name}_{suite_name}_TestCase_{random.randint(25, 40)}" for _ in range(num_cases)]
 
-function generateRandomData(numRecords: number): Record[] {
-    const data: Record[] = [];
-    for (let i = 0; i < numRecords; i++) {
-        const projectName = faker.helpers.arrayElement(projectNames);
-        const suiteNum = faker.datatype.number({ min: 1, max: 10 });
-        const suiteName = `${projectName}_SUITE_NAME_${suiteNum}`;
-        const suitePath = faker.helpers.arrayElement(suitePaths);
-        const runId = faker.date.recent(30);
-        const platform = faker.helpers.arrayElement(platforms);
-        const testCaseID = `${projectName}_${suiteName}_TestCase_${faker.datatype.number(100)}`;
-        const executionStatus = faker.datatype.number(10) < 1 ? 'failed' : 'passed'; // Mostly 'passed'
-        const testCaseStartTime = new Date(runId.getTime() + faker.datatype.number({ min: 1000, max: 10000 }));
-        const testCaseEndTime = new Date(testCaseStartTime.getTime() + faker.datatype.number({ min: 60000, max: 1200000 }));
+def generate_data():
+    records = []
+    for project_name in project_names:
+        for suite_index in range(1, 4):  # Each project has 3 suites
+            suite_name = f"{project_name}_SUITE_NAME_{suite_index}"
+            suite_path = random.choice(suite_paths)
+            platform = random.choice(platforms)
+            # Test cases pool for this suite
+            test_cases_pool = generate_test_cases(project_name, suite_name)
+            for run_index in range(random.randint(3, 5)):  # Each suite has 3-5 run_ids
+                run_id = fake.date_time_between(start_date="-30d", end_date="now")
+                # Each run_id uses a subset of the test cases pool
+                selected_test_cases = random.sample(test_cases_pool, random.randint(10, 20))
+                for test_case_id in selected_test_cases:
+                    execution_status = 'failed' if random.randint(1, 10) == 1 else 'passed'
+                    test_case_start_time = run_id + timedelta(seconds=random.randint(10, 1000))
+                    test_case_end_time = test_case_start_time + timedelta(minutes=random.randint(1, 20))
 
-        data.push({
-            Suite_name: suiteName,
-            Suite_path: suitePath,
-            run_id: runId.toISOString(),
-            platform: platform,
-            TestCaseID: testCaseID,
-            Execution_status: executionStatus,
-            test_case_start_time: testCaseStartTime.toISOString(),
-            testcase_end_time: testCaseEndTime.toISOString(),
-        });
-    }
-    return data;
-}
+                    records.append({
+                        'Project_name': project_name,
+                        'Suite_name': suite_name,
+                        'Suite_path': suite_path,
+                        'run_id': run_id.strftime('%Y-%m-%d %H:%M:%S'),
+                        'platform': platform,
+                        'TestCaseID': test_case_id,
+                        'Execution_status': execution_status,
+                        'test_case_start_time': test_case_start_time.strftime('%Y-%m-%d %H:%M:%S'),
+                        'testcase_end_time': test_case_end_time.strftime('%Y-%m-%d %H:%M:%S')
+                    })
+    return records
 
-function writeToCSV(records: Record[], fileName: string) {
-    const csvWriter = createCsvWriter({
-        path: fileName,
-        header: [
-            { id: 'Suite_name', title: 'Suite_name' },
-            { id: 'Suite_path', title: 'Suite_path' },
-            { id: 'run_id', title: 'run_id' },
-            { id: 'platform', title: 'platform' },
-            { id: 'TestCaseID', title: 'TestCaseID' },
-            { id: 'Execution_status', title: 'Execution_status' },
-            { id: 'test_case_start_time', title: 'test_case_start_time' },
-            { id: 'testcase_end_time', title: 'testcase_end_time' }
-        ],
-    });
+def write_to_csv(records, file_name):
+    with open(file_name, mode='w', newline='') as file:
+        writer = csv.DictWriter(file, fieldnames=records[0].keys())
+        writer.writeheader()
+        writer.writerows(records)
 
-    csvWriter.writeRecords(records)
-        .then(() => console.log('Data successfully written to CSV'))
-        .catch(err => console.error('Failed to write CSV', err));
-}
-
-// Generate 100 random records
-const records = generateRandomData(100);
-writeToCSV(records, 'output.csv');
+# Generate and write data
+data = generate_data()
+write_to_csv(data, output_file)
