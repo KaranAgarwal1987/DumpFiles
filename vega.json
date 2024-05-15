@@ -1,0 +1,75 @@
+{
+  "$schema": "https://vega.github.io/schema/vega/v5.json",
+  "description": "Test Execution Status for Last Run ID per Subdomain",
+  "data": [
+    {
+      "name": "table",
+      "url": "data-from-elasticsearch.json",
+      "format": {
+        "type": "json",
+        "property": "aggregations.by_subdomain.buckets"
+      },
+      "transform": [
+        {
+          "type": "formula",
+          "as": "subdomain",
+          "expr": "datum.key"
+        },
+        {
+          "type": "formula",
+          "as": "latest_execution_status",
+          "expr": "datum.latest_run.hits.hits[0]._source.ExecutionStatus"
+        }
+      ]
+    }
+  ],
+  "scales": [
+    {
+      "name": "xscale",
+      "type": "band",
+      "domain": {"data": "table", "field": "subdomain"},
+      "range": "width",
+      "padding": 0.05
+    },
+    {
+      "name": "yscale",
+      "type": "linear",
+      "domain": {"data": "table", "field": "latest_execution_status"},
+      "range": "height",
+      "nice": true
+    }
+  ],
+  "axes": [
+    {"orient": "bottom", "scale": "xscale"},
+    {"orient": "left", "scale": "yscale"}
+  ],
+  "marks": [
+    {
+      "type": "rect",
+      "from": {"data": "table"},
+      "encode": {
+        "enter": {
+          "x": {"scale": "xscale", "field": "subdomain"},
+          "width": {"scale": "xscale", "band": 1},
+          "y": {"scale": "yscale", "field": "latest_execution_status"},
+          "y2": {"scale": "yscale", "value": 0},
+          "fill": {"value": "steelblue"}
+        }
+      }
+    },
+    {
+      "type": "text",
+      "from": {"data": "table"},
+      "encode": {
+        "enter": {
+          "x": {"scale": "xscale", "field": "subdomain", "band": 0.5},
+          "y": {"scale": "yscale", "field": "latest_execution_status", "offset": -5},
+          "text": {"field": "latest_execution_status"},
+          "align": {"value": "center"},
+          "baseline": {"value": "middle"},
+          "fill": {"value": "black"}
+        }
+      }
+    }
+  ]
+}
