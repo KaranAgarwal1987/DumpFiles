@@ -4,9 +4,45 @@
   "data": [
     {
       "name": "table",
-      "url": "data-from-elasticsearch.json",
+      "url": {
+        "%context%": true,
+        "%timefield%": "runID",
+        "index": "test-executions-*",
+        "body": {
+          "size": 0,
+          "aggs": {
+            "by_subdomain": {
+              "terms": {
+                "field": "subdomain.keyword",
+                "size": 1000
+              },
+              "aggs": {
+                "latest_run": {
+                  "top_hits": {
+                    "sort": [
+                      {
+                        "runID": {
+                          "order": "desc"
+                        }
+                      }
+                    ],
+                    "_source": {
+                      "includes": ["runID", "TestcaseName", "ExecutionStatus", "domain"]
+                    },
+                    "size": 1
+                  }
+                },
+                "status_counts": {
+                  "terms": {
+                    "field": "ExecutionStatus.keyword"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
       "format": {
-        "type": "json",
         "property": "aggregations.by_subdomain.buckets"
       },
       "transform": [
@@ -17,8 +53,25 @@
         },
         {
           "type": "formula",
-          "as": "latest_execution_status",
-          "expr": "datum.latest_run.hits.hits[0]._source.ExecutionStatus"
+          "as": "domain",
+          "expr": "datum.latest_run.hits.hits[0]._source.domain"
+        },
+        {
+          "type": "formula",
+          "as": "runID",
+          "expr": "datum.latest_run.hits.hits[0]._source.runID"
+        },
+        {
+          "type": "aggregate",
+          "groupby": ["subdomain"],
+          "fields": ["datum.status_counts.buckets['Passed'].doc_count", "datum.status_counts.buckets['Failed'].doc_count"],
+          "ops": ["sum", "sum"],
+          "as": ["Passed", "Failed"]
+        },
+        {
+          "type": "formula",
+          "as": "TotalTestCase",
+          "expr": "datum.Passed + datum.Failed"
         }
       ]
     }
@@ -34,7 +87,7 @@
     {
       "name": "yscale",
       "type": "linear",
-      "domain": {"data": "table", "field": "latest_execution_status"},
+      "domain": {"data": "table", "field": "TotalTestCase"},
       "range": "height",
       "nice": true
     }
@@ -45,31 +98,43 @@
   ],
   "marks": [
     {
-      "type": "rect",
-      "from": {"data": "table"},
-      "encode": {
-        "enter": {
-          "x": {"scale": "xscale", "field": "subdomain"},
-          "width": {"scale": "xscale", "band": 1},
-          "y": {"scale": "yscale", "field": "latest_execution_status"},
-          "y2": {"scale": "yscale", "value": 0},
-          "fill": {"value": "steelblue"}
+      "type": "group",
+      "from": {
+        "facet": {
+          "data": "table",
+          "name": "facet",
+          "groupby": "subdomain"
         }
-      }
-    },
-    {
-      "type": "text",
-      "from": {"data": "table"},
-      "encode": {
-        "enter": {
-          "x": {"scale": "xscale", "field": "subdomain", "band": 0.5},
-          "y": {"scale": "yscale", "field": "latest_execution_status", "offset": -5},
-          "text": {"field": "latest_execution_status"},
-          "align": {"value": "center"},
-          "baseline": {"value": "middle"},
-          "fill": {"value": "black"}
+      },
+      "marks": [
+        {
+          "type": "rect",
+          "from": {"data": "facet"},
+          "encode": {
+            "enter": {
+              "x": {"scale": "xscale", "field": "subdomain"},
+              "width": {"scale": "xscale", "band": 1},
+              "y": {"scale": "yscale", "field": "TotalTestCase"},
+              "y2": {"scale": "yscale", "value": 0},
+              "fill": {"value": "steelblue"}
+            }
+          }
+        },
+        {
+          "type": "text",
+          "from": {"data": "facet"},
+          "encode": {
+            "enter": {
+              "x": {"scale": "xscale", "field": "subdomain", "band": 0.5},
+              "y": {"scale": "yscale", "field": "TotalTestCase", "offset": -5},
+              "text": {"field": "TotalTestCase"},
+              "align": {"value": "center"},
+              "baseline": {"value": "middle"},
+              "fill": {"value": "black"}
+            }
+          }
         }
-      }
+      ]
     }
   ]
 }
