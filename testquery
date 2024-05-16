@@ -23,28 +23,20 @@ GET test-executions-*/_search
             "size": 1
           }
         },
-        "latest_status": {
+        "latest_run_bucket": {
           "terms": {
-            "script": {
-              "source": "doc['RUN_ID.keyword'].value == params['_source']['latest_run']['hits']['hits'][0]['_source']['RUN_ID'] ? doc['Status.keyword'].value : 'other'",
-              "lang": "painless"
-            },
-            "value_type": "string"
+            "field": "RUN_ID.keyword",
+            "size": 1,
+            "order": {
+              "_key": "desc"
+            }
           },
           "aggs": {
-            "status_count": {
-              "value_count": {
+            "status_counts": {
+              "terms": {
                 "field": "Status.keyword"
               }
             }
-          }
-        },
-        "remove_others": {
-          "bucket_selector": {
-            "buckets_path": {
-              "statusCount": "latest_status.status_count"
-            },
-            "script": "params.statusCount != 0"
           }
         }
       }
