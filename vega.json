@@ -1,19 +1,19 @@
 {
   "$schema": "https://vega.github.io/schema/vega/v5.json",
-  "description": "Test Execution Status for Last Run ID per Subdomain",
+  "description": "Test Execution Status for Last RUN_ID per SubDomain",
   "data": [
     {
       "name": "table",
       "url": {
         "%context%": true,
-        "%timefield%": "runID",
+        "%timefield%": "RUN_ID",
         "index": "test-executions-*",
         "body": {
           "size": 0,
           "aggs": {
             "by_subdomain": {
               "terms": {
-                "field": "subdomain.keyword",
+                "field": "SubDomain.keyword",
                 "size": 1000
               },
               "aggs": {
@@ -21,20 +21,20 @@
                   "top_hits": {
                     "sort": [
                       {
-                        "runID": {
+                        "RUN_ID": {
                           "order": "desc"
                         }
                       }
                     ],
                     "_source": {
-                      "includes": ["runID", "TestcaseName", "ExecutionStatus", "domain"]
+                      "includes": ["RUN_ID", "TestCaseName", "Status", "Domain"]
                     },
                     "size": 1
                   }
                 },
                 "status_counts": {
                   "terms": {
-                    "field": "ExecutionStatus.keyword"
+                    "field": "Status.keyword"
                   }
                 }
               }
@@ -54,19 +54,22 @@
         {
           "type": "formula",
           "as": "domain",
-          "expr": "datum.latest_run.hits.hits[0]._source.domain"
+          "expr": "datum.latest_run.hits.hits[0]._source.Domain"
         },
         {
           "type": "formula",
           "as": "runID",
-          "expr": "datum.latest_run.hits.hits[0]._source.runID"
+          "expr": "datum.latest_run.hits.hits[0]._source.RUN_ID"
         },
         {
-          "type": "aggregate",
-          "groupby": ["subdomain"],
-          "fields": ["datum.status_counts.buckets['Passed'].doc_count", "datum.status_counts.buckets['Failed'].doc_count"],
-          "ops": ["sum", "sum"],
-          "as": ["Passed", "Failed"]
+          "type": "formula",
+          "as": "Passed",
+          "expr": "datum.status_counts.buckets.filter(d => d.key === 'Passed')[0]?.doc_count || 0"
+        },
+        {
+          "type": "formula",
+          "as": "Failed",
+          "expr": "datum.status_counts.buckets.filter(d => d.key === 'Failed')[0]?.doc_count || 0"
         },
         {
           "type": "formula",
