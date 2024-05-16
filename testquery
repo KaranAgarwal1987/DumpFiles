@@ -8,7 +8,7 @@ GET test-executions-*/_search
         "size": 1000
       },
       "aggs": {
-        "latest_run": {
+        "latest_run_id": {
           "top_hits": {
             "sort": [
               {
@@ -18,14 +18,26 @@ GET test-executions-*/_search
               }
             ],
             "_source": {
-              "includes": ["RUN_ID", "SubDomain"]
+              "includes": ["RUN_ID"]
             },
             "size": 1
           }
         },
-        "status_counts": {
-          "terms": {
-            "field": "Status.keyword"
+        "by_run_id": {
+          "filter": {
+            "script": {
+              "source": """
+                def latestRunID = params['_source']['latest_run_id'].hits.hits[0]['_source']['RUN_ID'];
+                return doc['RUN_ID.keyword'].value == latestRunID;
+              """
+            }
+          },
+          "aggs": {
+            "status_counts": {
+              "terms": {
+                "field": "Status.keyword"
+              }
+            }
           }
         }
       }
