@@ -1,0 +1,34 @@
+GET test-executions-*/_search
+{
+  "size": 0,
+  "aggs": {
+    "by_subdomain": {
+      "terms": {
+        "field": "subdomain.keyword",
+        "size": 1000
+      },
+      "aggs": {
+        "latest_run": {
+          "top_hits": {
+            "sort": [
+              {
+                "runID": {
+                  "order": "desc"
+                }
+              }
+            ],
+            "_source": {
+              "includes": ["runID", "TestcaseName", "ExecutionStatus", "domain"]
+            },
+            "size": 1
+          }
+        },
+        "status_counts": {
+          "terms": {
+            "field": "ExecutionStatus.keyword"
+          }
+        }
+      }
+    }
+  }
+}
