@@ -18,26 +18,14 @@ GET test-executions-*/_search
               }
             ],
             "_source": {
-              "includes": ["RUN_ID", "TestCaseName", "Status", "Domain"]
+              "includes": ["RUN_ID", "SubDomain"]
             },
             "size": 1
           }
         },
         "status_counts": {
-          "filter": {
-            "script": {
-              "script": """
-                def latestRunID = params._source['RUN_ID'];
-                return doc['RUN_ID.keyword'].value == latestRunID;
-              """
-            }
-          },
-          "aggs": {
-            "statuses": {
-              "terms": {
-                "field": "Status.keyword"
-              }
-            }
+          "terms": {
+            "field": "Status.keyword"
           }
         }
       }
