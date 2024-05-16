@@ -4,7 +4,7 @@ GET test-executions-*/_search
   "aggs": {
     "by_subdomain": {
       "terms": {
-        "field": "subdomain.keyword",
+        "field": "SubDomain.keyword",
         "size": 1000
       },
       "aggs": {
@@ -12,20 +12,32 @@ GET test-executions-*/_search
           "top_hits": {
             "sort": [
               {
-                "runID": {
+                "RUN_ID": {
                   "order": "desc"
                 }
               }
             ],
             "_source": {
-              "includes": ["runID", "TestcaseName", "ExecutionStatus", "domain"]
+              "includes": ["RUN_ID", "TestCaseName", "Status", "Domain"]
             },
             "size": 1
           }
         },
         "status_counts": {
-          "terms": {
-            "field": "ExecutionStatus.keyword"
+          "filter": {
+            "script": {
+              "script": """
+                def latestRunID = params._source['RUN_ID'];
+                return doc['RUN_ID.keyword'].value == latestRunID;
+              """
+            }
+          },
+          "aggs": {
+            "statuses": {
+              "terms": {
+                "field": "Status.keyword"
+              }
+            }
           }
         }
       }
