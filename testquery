@@ -18,24 +18,33 @@ GET test-executions-*/_search
               }
             ],
             "_source": {
-              "includes": ["RUN_ID"]
+              "includes": ["RUN_ID", "Status"]
             },
             "size": 1
           }
         },
-        "filter_by_latest_run": {
-          "bucket_selector": {
-            "buckets_path": {
-              "latestRunID": "latest_run.hits.hits[0]._source.RUN_ID"
+        "latest_status": {
+          "terms": {
+            "script": {
+              "source": "doc['RUN_ID.keyword'].value == params['_source']['latest_run']['hits']['hits'][0]['_source']['RUN_ID'] ? doc['Status.keyword'].value : 'other'",
+              "lang": "painless"
             },
-            "script": "params.latestRunID == doc['RUN_ID.keyword'].value"
+            "value_type": "string"
           },
           "aggs": {
-            "status_counts": {
-              "terms": {
+            "status_count": {
+              "value_count": {
                 "field": "Status.keyword"
               }
             }
+          }
+        },
+        "remove_others": {
+          "bucket_selector": {
+            "buckets_path": {
+              "statusCount": "latest_status.status_count"
+            },
+            "script": "params.statusCount != 0"
           }
         }
       }
