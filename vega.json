@@ -48,18 +48,14 @@
           "expr": "toDate(datum.key_as_string)"
         },
         {
-          "type": "flatten",
-          "fields": ["status_counts.buckets"]
-        },
-        {
           "type": "formula",
           "as": "Passed",
-          "expr": "datum['status_counts.buckets'].filter(function(d) { return d.key === 'Passed'; })[0] ? datum['status_counts.buckets'].filter(function(d) { return d.key === 'Passed'; })[0].doc_count : 0"
+          "expr": "datum['status_counts'].buckets.reduce((acc, d) => d.key === 'Passed' ? d.doc_count : acc, 0)"
         },
         {
           "type": "formula",
           "as": "Failed",
-          "expr": "datum['status_counts.buckets'].filter(function(d) { return d.key === 'Failed'; })[0] ? datum['status_counts.buckets'].filter(function(d) { return d.key === 'Failed'; })[0].doc_count : 0"
+          "expr": "datum['status_counts'].buckets.reduce((acc, d) => d.key === 'Failed' ? d.doc_count : acc, 0)"
         },
         {
           "type": "fold",
