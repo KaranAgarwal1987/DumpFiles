@@ -59,6 +59,10 @@
           "expr": "toDate(datum.key_as_string)"
         },
         {
+          "type": "filter",
+          "expr": "day(datum.date) != 0 && day(datum.date) != 6" // Filter out Sundays (0) and Saturdays (6)
+        },
+        {
           "type": "formula",
           "as": "Passed",
           "expr": "datum.status_counts.buckets.filter(b => b.key === 'Passed')[0] ? datum.status_counts.buckets.filter(b => b.key === 'Passed')[0].doc_count : 0"
