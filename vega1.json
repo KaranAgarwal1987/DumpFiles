@@ -1,0 +1,57 @@
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "description": "10-Day Trend of Daily Execution and Pass/Fail Test Cases",
+  "width": 800,
+  "height": 400,
+  "data": {
+    "values": [
+      {
+        "key_as_string": "2024-05-10T00:00:00.000Z",
+        "key": 1588982400000,
+        "doc_count": 10,
+        "status_counts": {
+          "buckets": [
+            {"key": "Passed", "doc_count": 6},
+            {"key": "Failed", "doc_count": 4}
+          ]
+        }
+      },
+      {
+        "key_as_string": "2024-05-11T00:00:00.000Z",
+        "key": 1589068800000,
+        "doc_count": 15,
+        "status_counts": {
+          "buckets": [
+            {"key": "Passed", "doc_count": 9},
+            {"key": "Failed", "doc_count": 6}
+          ]
+        }
+      }
+      // Add more data points as needed
+    ]
+  },
+  "transform": [
+    {
+      "calculate": "toDate(datum.key_as_string)",
+      "as": "date"
+    },
+    {
+      "calculate": "datum.status_counts.buckets[0] && datum.status_counts.buckets[0].key === 'Passed' ? datum.status_counts.buckets[0].doc_count : (datum.status_counts.buckets[1] && datum.status_counts.buckets[1].key === 'Passed' ? datum.status_counts.buckets[1].doc_count : 0)",
+      "as": "Passed"
+    },
+    {
+      "calculate": "datum.status_counts.buckets[0] && datum.status_counts.buckets[0].key === 'Failed' ? datum.status_counts.buckets[0].doc_count : (datum.status_counts.buckets[1] && datum.status_counts.buckets[1].key === 'Failed' ? datum.status_counts.buckets[1].doc_count : 0)",
+      "as": "Failed"
+    },
+    {
+      "fold": ["Passed", "Failed"],
+      "as": ["Status", "Count"]
+    }
+  ],
+  "mark": "bar",
+  "encoding": {
+    "x": {"field": "date", "type": "temporal"},
+    "y": {"field": "Count", "type": "quantitative"},
+    "color": {"field": "Status", "type": "nominal"}
+  }
+}
