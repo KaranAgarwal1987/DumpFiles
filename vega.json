@@ -1,6 +1,8 @@
 {
   "$schema": "https://vega.github.io/schema/vega/v5.json",
-  "description": "Test Execution Status for Last RUN_ID per SubDomain",
+  "description": "10-Day Trend of Daily Execution and Pass/Fail Test Cases",
+  "width": 800,
+  "height": 400,
   "data": [
     {
       "name": "table",
@@ -10,28 +12,22 @@
         "index": "test-executions-*",
         "body": {
           "size": 0,
+          "query": {
+            "range": {
+              "RUN_ID": {
+                "gte": "now-10d/d",
+                "lte": "now/d"
+              }
+            }
+          },
           "aggs": {
-            "by_subdomain": {
-              "terms": {
-                "field": "SubDomain.keyword",
-                "size": 1000
+            "by_day": {
+              "date_histogram": {
+                "field": "RUN_ID",
+                "calendar_interval": "day",
+                "min_doc_count": 1
               },
               "aggs": {
-                "latest_run": {
-                  "top_hits": {
-                    "sort": [
-                      {
-                        "RUN_ID": {
-                          "order": "desc"
-                        }
-                      }
-                    ],
-                    "_source": {
-                      "includes": ["RUN_ID", "TestCaseName", "Status", "Domain"]
-                    },
-                    "size": 1
-                  }
-                },
                 "status_counts": {
                   "terms": {
                     "field": "Status.keyword"
@@ -43,38 +39,32 @@
         }
       },
       "format": {
-        "property": "aggregations.by_subdomain.buckets"
+        "property": "aggregations.by_day.buckets"
       },
       "transform": [
         {
           "type": "formula",
-          "as": "subdomain",
-          "expr": "datum.key"
+          "as": "date",
+          "expr": "toDate(datum.key_as_string)"
         },
         {
-          "type": "formula",
-          "as": "domain",
-          "expr": "datum.latest_run.hits.hits[0]._source.Domain"
-        },
-        {
-          "type": "formula",
-          "as": "runID",
-          "expr": "datum.latest_run.hits.hits[0]._source.RUN_ID"
+          "type": "flatten",
+          "fields": ["status_counts.buckets"]
         },
         {
           "type": "formula",
           "as": "Passed",
-          "expr": "datum.status_counts.buckets.filter(d => d.key === 'Passed')[0]?.doc_count || 0"
+          "expr": "datum['status_counts.buckets'].filter(function(d) { return d.key === 'Passed'; })[0] ? datum['status_counts.buckets'].filter(function(d) { return d.key === 'Passed'; })[0].doc_count : 0"
         },
         {
           "type": "formula",
           "as": "Failed",
-          "expr": "datum.status_counts.buckets.filter(d => d.key === 'Failed')[0]?.doc_count || 0"
+          "expr": "datum['status_counts.buckets'].filter(function(d) { return d.key === 'Failed'; })[0] ? datum['status_counts.buckets'].filter(function(d) { return d.key === 'Failed'; })[0].doc_count : 0"
         },
         {
-          "type": "formula",
-          "as": "TotalTestCase",
-          "expr": "datum.Passed + datum.Failed"
+          "type": "fold",
+          "fields": ["Passed", "Failed"],
+          "as": ["Status", "Count"]
         }
       ]
     }
@@ -82,62 +72,55 @@
   "scales": [
     {
       "name": "xscale",
-      "type": "band",
-      "domain": {"data": "table", "field": "subdomain"},
-      "range": "width",
-      "padding": 0.05
+      "type": "time",
+      "domain": {"data": "table", "field": "date"},
+      "range": "width"
     },
     {
       "name": "yscale",
       "type": "linear",
-      "domain": {"data": "table", "field": "TotalTestCase"},
+      "domain": {"data": "table", "field": "Count"},
       "range": "height",
       "nice": true
+    },
+    {
+      "name": "color",
+      "type": "ordinal",
+      "domain": ["Passed", "Failed"],
+      "range": ["green", "red"]
     }
   ],
   "axes": [
-    {"orient": "bottom", "scale": "xscale"},
-    {"orient": "left", "scale": "yscale"}
+    {"orient": "bottom", "scale": "xscale", "format": "%Y-%m-%d", "title": "Date"},
+    {"orient": "left", "scale": "yscale", "title": "Test Cases"}
   ],
   "marks": [
     {
-      "type": "group",
-      "from": {
-        "facet": {
-          "data": "table",
-          "name": "facet",
-          "groupby": "subdomain"
+      "type": "rect",
+      "from": {"data": "table"},
+      "encode": {
+        "enter": {
+          "x": {"scale": "xscale", "field": "date", "offset": {"scale": "xscale", "band": 0.5}},
+          "width": {"value": 10},
+          "y": {"scale": "yscale", "field": "Count"},
+          "y2": {"scale": "yscale", "value": 0},
+          "fill": {"scale": "color", "field": "Status"}
         }
-      },
-      "marks": [
-        {
-          "type": "rect",
-          "from": {"data": "facet"},
-          "encode": {
-            "enter": {
-              "x": {"scale": "xscale", "field": "subdomain"},
-              "width": {"scale": "xscale", "band": 1},
-              "y": {"scale": "yscale", "field": "TotalTestCase"},
-              "y2": {"scale": "yscale", "value": 0},
-              "fill": {"value": "steelblue"}
-            }
-          }
-        },
-        {
-          "type": "text",
-          "from": {"data": "facet"},
-          "encode": {
-            "enter": {
-              "x": {"scale": "xscale", "field": "subdomain", "band": 0.5},
-              "y": {"scale": "yscale", "field": "TotalTestCase", "offset": -5},
-              "text": {"field": "TotalTestCase"},
-              "align": {"value": "center"},
-              "baseline": {"value": "middle"},
-              "fill": {"value": "black"}
-            }
-          }
+      }
+    },
+    {
+      "type": "text",
+      "from": {"data": "table"},
+      "encode": {
+        "enter": {
+          "x": {"scale": "xscale", "field": "date", "offset": 5},
+          "y": {"scale": "yscale", "field": "Count", "offset": -5},
+          "text": {"field": "Count"},
+          "align": {"value": "center"},
+          "baseline": {"value": "bottom"},
+          "fill": {"value": "black"}
         }
-      ]
+      }
     }
   ]
 }
