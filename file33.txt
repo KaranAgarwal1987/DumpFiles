@@ -1,0 +1,128 @@
+{
+  "$schema": "https://vega.github.io/schema/vega/v5.json",
+  "description": "10-Day Trend of Daily Execution and Pass/Fail Test Cases",
+  "width": 800,
+  "height": 400,
+  "data": [
+    {
+      "name": "table",
+      "url": {
+        "%context%": true,
+        "%timefield%": "RUN_ID",
+        "index": "test-executions-*",
+        "body": {
+          "size": 0,
+          "query": {
+            "range": {
+              "RUN_ID": {
+                "gte": "now-10d/d",
+                "lte": "now/d"
+              }
+            }
+          },
+          "aggs": {
+            "by_day": {
+              "date_histogram": {
+                "field": "RUN_ID",
+                "calendar_interval": "day",
+                "min_doc_count": 1
+              },
+              "aggs": {
+                "status_counts": {
+                  "terms": {
+                    "field": "Status.keyword"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "format": {
+        "property": "aggregations.by_day.buckets"
+      },
+      "transform": [
+        {
+          "type": "formula",
+          "as": "date",
+          "expr": "toDate(datum.key_as_string)"
+        },
+        {
+          "type": "formula",
+          "as": "Passed",
+          "expr": "datum.status_counts.buckets[0] && datum.status_counts.buckets[0].key === 'Passed' ? datum.status_counts.buckets[0].doc_count : (datum.status_counts.buckets[1] && datum.status_counts.buckets[1].key === 'Passed' ? datum.status_counts.buckets[1].doc_count : 0)"
+        },
+        {
+          "type": "formula",
+          "as": "Failed",
+          "expr": "datum.status_counts.buckets[0] && datum.status_counts.buckets[0].key === 'Failed' ? datum.status_counts.buckets[0].doc_count : (datum.status_counts.buckets[1] && datum.status_counts.buckets[1].key === 'Failed' ? datum.status_counts.buckets[1].doc_count : 0)"
+        },
+        {
+          "type": "fold",
+          "fields": ["Passed", "Failed"],
+          "as": ["Status", "Count"]
+        }
+      ]
+    }
+  ],
+  "scales": [
+    {
+      "name": "xscale",
+      "type": "time",
+      "domain": {"data": "table", "field": "date"},
+      "range": "width"
+    },
+    {
+      "name": "yscale",
+      "type": "linear",
+      "domain": {"data": "table", "field": "Count"},
+      "range": "height",
+      "nice": true
+    },
+    {
+      "name": "color",
+      "type": "ordinal",
+      "domain": ["Passed", "Failed"],
+      "range": ["green", "red"]
+    }
+  ],
+  "axes": [
+    {"orient": "bottom", "scale": "xscale", "format": "%Y-%m-%d", "title": "Date"},
+    {"orient": "left", "scale": "yscale", "title": "Test Cases"}
+  ],
+  "marks": [
+    {
+      "type": "bar",
+      "from": {"data": "table"},
+      "encode": {
+        "enter": {
+          "x": {"scale": "xscale", "field": "date"},
+          "y": {"scale": "yscale", "field": "Count"},
+          "y2": {"scale": "yscale", "value": 0},
+          "fill": {"scale": "color", "field": "Status"},
+          "tooltip": {"signal": "{'Date': datum.date, 'Status': datum.Status, 'Count': datum.Count}"}
+        },
+        "update": {
+          "x": {"scale": "xscale", "field": "date"},
+          "y": {"scale": "yscale", "field": "Count"},
+          "y2": {"scale": "yscale", "value": 0},
+          "fill": {"scale": "color", "field": "Status"}
+        }
+      }
+    },
+    {
+      "type": "text",
+      "from": {"data": "table"},
+      "encode": {
+        "enter": {
+          "x": {"scale": "xscale", "field": "date", "offset": 5},
+          "y": {"scale": "yscale", "field": "Count", "offset": -5},
+          "text": {"field": "Count"},
+          "align": {"value": "center"},
+          "baseline": {"value": "bottom"},
+          "fill": {"value": "black"}
+        }
+      }
+    }
+  ]
+}
